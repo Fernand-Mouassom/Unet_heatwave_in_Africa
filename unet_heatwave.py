@@ -40,6 +40,7 @@ X = predictors.values
 
 # Load target datasets
 target  = xr.open_dataset("target_var/AFR_1984-2023_daily_tw_heatwaves_day.nc")
+target = target.where(target.time.dt.year.isin(np.arange(1984, 2024)), drop=True)
 y = with_channel(target["tw_heatwaves_day"], "label").values
 
 years = pd.to_datetime(target.time.values).year
@@ -65,7 +66,17 @@ loss_fn = weighted_bce(weight_0, weight_1)
 def turning_model(n_filters=32, dropout_rate=0.3, l2_strength=1e-4, lr=1e-3):
     return unet_regressor(input_shape=(321, 321, 4), n_filters=n_filters, dropout_rate=dropout_rate, l2_strength=l2_strength, lr=lr, loss_fn=loss_fn)
 
-model = KerasClassifier(build_fn=turning_model, epochs=20, batch_size=16, verbose=1)
+model = KerasClassifier(
+    build_fn=turning_model,
+    epochs=20,
+    verbose=1,
+    n_filters=32,          
+    dropout_rate=0.3,
+    l2_strength=1e-4,
+    lr=1e-3,
+    batch_size=4,
+    y_validation=False
+)
 
 param_dist = {
     "n_filters": [16, 32, 64],
@@ -104,8 +115,7 @@ random_search = RandomizedSearchCV(estimator=model,
                                    cv=cv,
                                    verbose=2,
                                    scoring=recall_metric,
-                                   n_jobs=1,
-                                   loss_fn=loss_fn)
+                                   n_jobs=1)
 
 random_search.fit(X, y, callbacks=[early_stop])
 
