@@ -1,6 +1,9 @@
 from tensorflow.keras import layers, models, Input, regularizers, metrics
 from tensorflow.keras.optimizers import Adam
 
+def cropping(ds):
+    return ds.sel(lat=slice(40, -39.76), lon=slice(-20, 59.76))
+
 def zscore(da):
     return (da - da.mean("time")) / da.std("time")
 
